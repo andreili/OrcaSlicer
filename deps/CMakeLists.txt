@@ -612,7 +612,7 @@ else()
     include(OCCT/OCCT.cmake)
 endif()
 
-find_package(OpenCV REQUIRED core imgproc imgcodecs QUIET)
+find_package(OpenCV COMPONENTS core imgproc imgcodecs QUIET)
 message(STATUS "OpenCV version found: ${OpenCV_LIB_COMPONENTS}")
 if(OpenCV_FOUND AND SYS_LIB_OPENCV)
     message(STATUS "Using OpenCV from system.")

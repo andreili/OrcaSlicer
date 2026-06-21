@@ -21,7 +21,7 @@ on:
 jobs:
   build_orca:
     name: Build OrcaSlicer
-    runs-on: ${{ inputs.os }}
+    runs-on: self-hosted
     env:
       date:
       ver:

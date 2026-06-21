@@ -12,7 +12,7 @@ on:
 
 jobs:
   dedupe-issues:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 30
     permissions:
       contents: read

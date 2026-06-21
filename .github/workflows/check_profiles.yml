@@ -21,7 +21,7 @@ permissions:
 jobs:
   check_profiles:
     name: Check profiles
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

@@ -120,7 +120,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake/modules/)
 
 if (SYS_LIBS)
     #TODO: boost;cgal
-    set(SYS_LIBS_ALL "zlib;png;gmp;mpfr;openssl;curl;jpeg;freetype;expat;opencv;cereal;qhull;opencsg;tbb;glew;glfw;nlopt;blosc;occt;openexr;openvdb;wxwidgets;boost")
+    set(SYS_LIBS_ALL "zlib;png;gmp;mpfr;openssl;curl;jpeg;freetype;expat;opencv;cereal;qhull;opencsg;tbb;glew;glfw;nlopt;blosc;occt;openexr;openvdb;wxwidgets;boost;python3")
     if (SYS_LIBS MATCHES "all")
         set(SYS_LIBS ${SYS_LIBS_ALL})
     endif()
@@ -630,6 +630,17 @@ else()
     include(OpenCV/OpenCV.cmake)
 endif()
 
+find_package(Python3 QUIET)
+if(Python3_FOUND AND SYS_LIB_PYTHON3)
+    message(STATUS "Using Python3 from system.")
+    add_library(dep_python3 INTERFACE)
+else()
+    message(STATUS "Using Python3 from source.")
+    include(python3/python3.cmake)
+endif()
+
+include(wxInspector/wxInspector.cmake)
+
 set(_dep_list
     dep_Boost
     dep_TBB
@@ -651,6 +662,8 @@ set(_dep_list
     ${ZLIB_PKG}
     ${EXPAT_PKG}
     dep_libnoise
+    dep_python3
+    dep_wxInspector
     )
 
 if (MSVC)

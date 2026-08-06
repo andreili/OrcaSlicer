@@ -76,6 +76,13 @@ endif()
 add_subdirectory(mdns)
 add_subdirectory(miniz)
 add_subdirectory(minilzo)
-add_subdirectory(qhull)
+
+find_package(qhull QUIET)
+if (USE_SYS_LIBS AND qhull_FOUND)
+    message(STATUS "Using system qhull library")
+else()
+    add_subdirectory(qhull)
+endif()
+
 add_subdirectory(qoi)
 add_subdirectory(semver)      # Semver static library

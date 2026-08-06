@@ -19,11 +19,7 @@
 #include <boost/nowide/cstdlib.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/fstream.hpp>
-#include <boost/process/v2/child.hpp>
-#include <boost/process/v2/pipe.hpp>
-#include <boost/process/v2/start_dir.hpp>
-#include <boost/process/v2/io.hpp>
-#include <boost/process/v2/handles.hpp>
+#include <boost/process/v1.hpp>
 #include <boost/asio.hpp>
 
 // BBS
@@ -171,9 +167,9 @@ static int run_script(const std::string& script, const std::string& gcode, std::
 // POSIX
 
 #include <cstdlib> // getenv()
-#include <boost/process.hpp>
+#include <boost/process/v1.hpp>
 
-namespace process = boost::process;
+namespace process = boost::process::v1;
 
 static int run_script(const std::string& script, const std::string& gcode, std::string& std_err)
 {
@@ -197,8 +193,8 @@ static int run_script(const std::string& script, const std::string& gcode, std::
 
     BOOST_LOG_TRIVIAL(debug) << boost::format("Executing script, shell: %1%, command: %2%") % shell % command;
 
-    process::v2::ipstream istd_err;
-    process::v2::child child(shell, "-c", command, process::v2::std_err > istd_err);
+    process::ipstream istd_err;
+    process::child child(shell, "-c", command, process::std_err > istd_err);
 
     std_err.clear();
     std::string line;

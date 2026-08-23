@@ -497,7 +497,7 @@ add_library(libslic3r STATIC ${lisbslic3r_sources}
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
-if (SLIC3R_STATIC)
+if (SLIC3R_STATIC AND NOT SYS_LIB_CGAL)
     set(CGAL_Boost_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)
 endif ()
 set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE ON CACHE BOOL "" FORCE)
@@ -511,6 +511,11 @@ find_package(CGAL REQUIRED)
 find_package(OpenCV REQUIRED core)
 unset(CMAKE_POLICY_DEFAULT_CMP0167)
 cmake_policy(POP)
+find_package(OpenCV REQUIRED core imgproc imgcodecs)
+if (SLIC3R_STATIC AND NOT SYS_LIB_OPENCV)
+    # fix-up for a static linked version
+    set(OpenCV_LIBS opencv_world)
+endif()
 
 add_library(libslic3r_cgal STATIC
     CutSurface.hpp CutSurface.cpp
@@ -560,12 +565,21 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
-set(OCCT_LIBS
-    TKXDESTEP
-    TKSTEP
-    TKSTEP209
-    TKSTEPAttr
-    TKSTEPBase
+if (OpenCASCADE_VERSION VERSION_LESS 7.8.0)
+    set(OCCT_LIBS
+        TKXDESTEP
+        TKSTEP
+        TKSTEP209
+        TKSTEPAttr
+        TKSTEPBase)
+else()
+    # OCCT 7.8.0 and later use another set of libraries
+    set(OCCT_LIBS
+        TKXSDRAWSTEP
+        TKDESTEP)
+endif()
+
+list(APPEND OCCT_LIBS
     TKXCAF
     TKXSBase
     TKVCAF
@@ -596,7 +610,7 @@ target_link_libraries(libslic3r
         libigl
         libnest2d
         miniz
-        opencv_world
+        ${OpenCV_LIBS}
     PRIVATE
         ${CMAKE_DL_LIBS}
         ${EXPAT_LIBRARIES}

@@ -27,7 +27,7 @@ jobs:
     # This job name is the check-run name pr-merge-bot.yml requires before a
     # delegated merge. Renaming it silently disables that gate.
     name: Check profiles
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

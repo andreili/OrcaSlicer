@@ -263,6 +263,25 @@ set(SLIC3R_GTK "3" CACHE STRING "GTK version to use with wxWidgets on Linux")
 
 set(IS_CROSS_COMPILE FALSE)
 
+option(SYS_LIBS "Compile OrcaSlicer with system libraries, if possible (e.g. 'opencv;openvdb;wxwidgets;boost;tbb;cgal')" ${SYS_LIBS})
+
+if (SYS_LIBS)
+    set(SYS_LIBS_ALL "opencv;openvdb;wxwidgets;boost;tbb;cgal;python3")
+    if (SYS_LIBS MATCHES "all")
+        set(SYS_LIBS ${SYS_LIBS_ALL})
+    endif()
+    FOREACH(lib ${SYS_LIBS})
+        if (NOT lib IN_LIST SYS_LIBS_ALL)
+            message(FATAL_ERROR "Unknown library specified in SYS_LIBS: ${lib}. Valid options are: ${SYS_LIBS_ALL} or 'all'.")
+        endif()
+        string(TOUPPER ${lib} lib_upper)
+        set(SYS_LIB_${lib_upper} ON CACHE BOOL "Try to use system library for ${lib}")
+        message(STATUS "System library for ${lib}: ${SYS_LIB_${lib_upper}}")
+    ENDFOREACH()
+else()
+    message(STATUS "System libraries disabled (SYS_LIBS is empty)")
+endif()
+
 option (COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 if (${COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -697,7 +716,7 @@ list(REMOVE_DUPLICATES CMAKE_C_FLAGS_RELWITHDEBINFO)
 list(REMOVE_DUPLICATES CMAKE_CXX_FLAGS_RELWITHDEBINFO)
 
 # Find and configure boost
-if(SLIC3R_STATIC)
+if(SLIC3R_STATIC AND NOT SYS_LIB_BOOST)
     # Use static boost libraries.
     set(Boost_USE_STATIC_LIBS ON)
     # Use boost libraries linked statically to the C++ runtime.
@@ -713,7 +732,12 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 set(Boost_NO_SYSTEM_PATHS TRUE)
-find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
+set(Boost_COMPONENTS filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide process)
+if(NOT SYS_LIB_BOOST)
+    # Have only on static library
+    list(APPEND Boost_COMPONENTS system)
+endif()
+find_package(Boost 1.90.0 REQUIRED COMPONENTS ${Boost_COMPONENTS})
 
 # Find and configure Eigen3
 find_package(Eigen3 5.0.1 REQUIRED)
@@ -726,7 +750,7 @@ if (APPLE)
     target_compile_definitions(boost_headeronly INTERFACE BOOST_ASIO_DISABLE_KQUEUE)
 endif()
 
-if(NOT SLIC3R_STATIC)
+if(NOT SLIC3R_STATIC OR SYS_LIB_BOOST)
     target_compile_definitions(boost_headeronly INTERFACE BOOST_LOG_DYN_LINK)
 endif()
 
@@ -746,7 +770,7 @@ target_include_directories(boost_headeronly SYSTEM INTERFACE ${Boost_INCLUDE_DIR
 target_link_libraries(boost_libs INTERFACE boost_headeronly ${Boost_LIBRARIES})
 
 # Find and configure intel-tbb
-if(SLIC3R_STATIC)
+if(SLIC3R_STATIC AND NOT SYS_LIB_TBB)
     set(TBB_STATIC 1)
 endif()
 set(TBB_DEBUG 1)
@@ -881,13 +905,22 @@ endforeach()
 find_package(NLopt 1.4 REQUIRED)
 
 # Use bundled Python from deps instead of system Python
-set(_bundled_python_version "3.12.13")
-set(_bundled_python_abi "312")
+if(SYS_LIB_PYTHON3)
+    find_package(Python3 QUIET)
+    if(NOT Python3_FOUND)
+        message(FATAL_ERROR "Python3 not found. Please install Python3 or disable SYS_LIB_PYTHON3 to use the bundled Python3.")
+    endif()
+    set(_bundled_python_version "${Python3_VERSION}")
+    set(_bundled_python_abi "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
+else()
+    set(_bundled_python_version "3.12.13")
+    set(_bundled_python_abi "312")
+    set(_bundled_python_root "${CMAKE_PREFIX_PATH}/libpython")
+    set(Python3_ROOT_DIR "${_bundled_python_root}" CACHE PATH "Root directory for bundled Python" FORCE)
+    set(Python3_FIND_STRATEGY LOCATION)
+endif()
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" _bundled_python_version_short "${_bundled_python_version}")
-set(_bundled_python_root "${CMAKE_PREFIX_PATH}/libpython")
-set(Python3_ROOT_DIR "${_bundled_python_root}" CACHE PATH "Root directory for bundled Python" FORCE)
 set(Python3_USE_STATIC_LIBS OFF)
-set(Python3_FIND_STRATEGY LOCATION)
 set(Python3_FIND_IMPLEMENTATIONS CPython)
 
 if(WIN32)
@@ -961,14 +994,19 @@ target_compile_definitions(pybind11_embed INTERFACE PYBIND11_SIMPLE_GIL_MANAGEME
 add_library(pybind11::embed ALIAS pybind11_embed)
 
 
-if(SLIC3R_STATIC)
+if(SLIC3R_STATIC AND NOT SYS_LIB_OPENVDB)
     set(OPENVDB_USE_STATIC_LIBS ON)
     set(USE_BLOSC TRUE)
 endif ()
 
+find_package(OpenEXR QUIET)
 find_package(OpenVDB 5.0 COMPONENTS openvdb)
 if(OpenVDB_FOUND)
-    slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+    if (OpenEXR_VERSION VERSION_LESS "3.0.0")
+        slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+    else()
+        slic3r_remap_configs(Imath RelWithDebInfo Release)
+    endif()
     slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
 else ()
     message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "

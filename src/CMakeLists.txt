@@ -22,7 +22,7 @@ if (SLIC3R_GUI)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")
     elseif(UNIX)
         set(wxWidgets_USE_UNICODE ON)
-        if(SLIC3R_STATIC)
+        if(SLIC3R_STATIC AND NOT SYS_LIB_WXWIDGETS)
             set(wxWidgets_USE_STATIC ON)
         else()
             set(wxWidgets_USE_STATIC OFF)
@@ -334,11 +334,13 @@ else ()
         COMMAND ln -sfn "${SLIC3R_RESOURCES_DIR}" "${BIN_RESOURCES_DIR}"
         COMMENT "Symlinking the resources directory into the build tree"
         VERBATIM)
-    add_custom_command(TARGET OrcaSlicer POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E rm -rf "${BIN_DIR}/python"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "${BIN_DIR}/python"
-        COMMENT "Copying Python runtime into the build tree"
-        VERBATIM)
+    if(NOT SYS_LIB_PYTHON3)
+        add_custom_command(TARGET OrcaSlicer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -rf "${BIN_DIR}/python"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "${BIN_DIR}/python"
+            COMMENT "Copying Python runtime into the build tree"
+            VERBATIM)
+    endif()
     # Stage uv next to the binary for the build-tree/.app flows, which never
     # run install() -- see the layout map above; lookup is bundled_uv_path().
     if(ORCA_BUNDLED_UV_EXECUTABLE AND EXISTS "${ORCA_BUNDLED_UV_EXECUTABLE}")

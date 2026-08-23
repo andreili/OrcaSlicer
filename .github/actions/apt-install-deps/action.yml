@@ -8,4 +8,5 @@ runs:
       run: |
         mkdir -p ${{ github.workspace }}/deps/build/destdir
         sudo env "ORCA_UPDATER_SIG_KEY=$ORCA_UPDATER_SIG_KEY" ./build_linux.sh -ur
+        echo "sudo chown $USER -R ./"
         sudo chown $USER -R ./
